@@ -1,0 +1,12 @@
+[workspace]
+
+members = [ "thrussh-agent", "thrussh-encoding", "thrussh-keys", "thrussh", "thrussh-libsodium", "thrussh-config", "cryptovec" ]
+
+[patch.crates-io]
+thrussh = { path = "thrussh" }
+thrussh-agent = { path = "thrussh-agent" }
+thrussh-encoding = { path = "thrussh-encoding" }
+thrussh-keys = { path = "thrussh-keys" }
+thrussh-libsodium = { path = "thrussh-libsodium" }
+cryptovec = { path = "cryptovec" }
+thrussh-config = { path = "thrussh-config" }
