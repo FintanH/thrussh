@@ -2,6 +2,7 @@ use anyhow::Result;
 use std::io::Write;
 use std::sync::Arc;
 use thrussh::*;
+use thrussh_agent::client::ClientStream;
 use thrussh_keys::*;
 
 #[tokio::main]
@@ -50,7 +51,7 @@ impl Session {
         let config = client::Config::default();
         let config = Arc::new(config);
         let sh = Client {};
-        let mut agent = thrussh_agent::client::AgentClient::connect_env().await?;
+        let mut agent = tokio::net::UnixStream::connect_env().await?;
         agent.add_identity(&key_pair, &[]).await?;
         let mut identities = agent.request_identities().await?;
         let mut session = client::connect(config, addr, sh).await?;

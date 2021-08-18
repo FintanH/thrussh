@@ -6,6 +6,7 @@ edition = "2018"
 [features]
 default = [ "tokio-agent" ]
 tokio-agent = [ "tokio" ]
+smol-agent = [ "smol" ]
 
 [dependencies]
 async-trait = "0.1"
@@ -14,6 +15,7 @@ cryptovec = "0.6.0"
 data-encoding = "2.3"
 futures = "0.3"
 log = "0.4"
+smol = { version = "1.2", optional = true }
 thiserror = "1.0"
 thrussh-encoding = "0.1"
 tokio = { version = "1.6", features = [ "io-util", "rt-multi-thread", "time" ], optional = true }

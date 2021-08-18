@@ -1,15 +1,21 @@
-use super::msg;
-use super::Constraint;
-use crate::key::{Private, Public, Signature};
+use std::path::Path;
+use std::fmt;
+
 use async_trait::async_trait;
 use byteorder::{BigEndian, ByteOrder};
 use cryptovec::CryptoVec;
-use std::fmt;
 use thiserror::Error;
 use thrussh_encoding::{Encoding, Reader};
 
+use super::msg;
+use super::Constraint;
+use crate::key::{Private, Public, Signature};
+
 #[cfg(feature = "tokio-agent")]
 pub mod tokio;
+
+#[cfg(feature = "smol-agent")]
+pub mod smol;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -64,11 +70,27 @@ impl<S: Unpin> AgentClient<S> {
 }
 
 #[async_trait]
-pub trait ReadResponse: Send + Sync {
+pub trait ClientStream: Sized + Send + Sync {
+    async fn connect_uds<P>(path: P) -> Result<AgentClient<Self>, Error> where
+	P: AsRef<Path> + Send;
     async fn read_response(&mut self, buf: &mut CryptoVec) -> Result<(), Error>;
+
+    async fn connect_env() -> Result<AgentClient<Self>, Error> {
+        let var = if let Ok(var) = std::env::var("SSH_AUTH_SOCK") {
+            var
+        } else {
+            return Err(Error::EnvVar("SSH_AUTH_SOCK"));
+        };
+        match Self::connect_uds(var).await {
+            Err(Error::Io(io_err)) if io_err.kind() == std::io::ErrorKind::NotFound => {
+                Err(Error::BadAuthSock)
+            }
+            owise => owise,
+        }
+    }
 }
 
-impl<S: ReadResponse + Unpin> AgentClient<S> {
+impl<S: ClientStream + Unpin> AgentClient<S> {
     /// Send a key to the agent, with a (possibly empty) slice of
     /// constraints to apply when using the key to sign.
     pub async fn add_identity<K>(

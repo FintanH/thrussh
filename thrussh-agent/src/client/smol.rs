@@ -3,14 +3,13 @@ use std::path::Path;
 use async_trait::async_trait;
 use byteorder::{BigEndian, ByteOrder};
 use cryptovec::CryptoVec;
-use tokio;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::UnixStream;
+use smol::io::{AsyncReadExt, AsyncWriteExt};
+use smol::net::unix::UnixStream;
 
 use super::{AgentClient, Error, ClientStream};
 
 #[cfg(not(unix))]
-impl AgentClient<tokio::net::TcpStream> {
+impl AgentClient<smol::net::TcpStream> {
     /// Build a future that connects to an SSH agent via the provided
     /// stream (on Unix, usually a Unix-domain socket).
     pub async fn connect_env() -> Result<Self, Error> {
