@@ -1,5 +1,5 @@
-use std::path::Path;
 use std::fmt;
+use std::path::Path;
 
 use async_trait::async_trait;
 use byteorder::{BigEndian, ByteOrder};
@@ -71,8 +71,9 @@ impl<S: Unpin> AgentClient<S> {
 
 #[async_trait]
 pub trait ClientStream: Sized + Send + Sync {
-    async fn connect_uds<P>(path: P) -> Result<AgentClient<Self>, Error> where
-	P: AsRef<Path> + Send;
+    async fn connect_uds<P>(path: P) -> Result<AgentClient<Self>, Error>
+    where
+        P: AsRef<Path> + Send;
     async fn read_response(&mut self, buf: &mut CryptoVec) -> Result<(), Error>;
 
     async fn connect_env() -> Result<AgentClient<Self>, Error> {

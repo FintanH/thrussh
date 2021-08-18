@@ -35,9 +35,7 @@ async fn main() {
     let config = Arc::new(config);
     let sh = Client {};
 
-    let mut agent = tokio::net::UnixStream::connect_env()
-        .await
-        .unwrap();
+    let mut agent = tokio::net::UnixStream::connect_env().await.unwrap();
     let mut identities = agent.request_identities().await.unwrap();
     let mut session = thrussh::client::connect(config, "127.0.0.1:2200", sh)
         .await
