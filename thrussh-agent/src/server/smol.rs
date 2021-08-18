@@ -6,9 +6,9 @@ use std;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, SystemTime};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
-use tokio::net::UnixStream;
-use tokio::time::sleep;
+use smol::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use smol::net::unix::UnixStream;
+use smol::Timer;
 
 use super::{revoke_key, Agent, Connection, Error, KeyStore, Lock, Revoker, ServerStream};
 use crate::key::Private;
@@ -20,10 +20,10 @@ where
     K: Send + Sync + 'static,
 {
     fn revoke(&self, keys: KeyStore<K>, blob: Vec<u8>, now: SystemTime, duration: Duration) {
-        tokio::spawn(async move {
-            sleep(duration).await;
+        smol::spawn(async move {
+            Timer::after(duration).await;
             revoke_key(keys, blob, now)
-        });
+        }).detach();
     }
 }
 
@@ -44,7 +44,7 @@ impl ServerStream for UnixStream
         while let Some(Ok(stream)) = listener.next().await {
             let mut buf = CryptoVec::new();
             buf.resize(4);
-            tokio::spawn(run(
+            smol::spawn(run(
                 Connection {
                     lock: lock.clone(),
                     keys: keys.clone(),
@@ -53,7 +53,7 @@ impl ServerStream for UnixStream
                     buf: CryptoVec::new(),
                 },
                 stream,
-            ));
+            )).detach();
         }
         Ok(())
     }
@@ -84,3 +84,4 @@ where
         stream.flush().await?
     }
 }
+

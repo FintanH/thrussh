@@ -18,7 +18,10 @@ use crate::key::Private;
 #[cfg(feature = "tokio-agent")]
 pub mod tokio;
 
-pub struct KeyStore<Key>(Arc<RwLock<HashMap<Vec<u8>, (Arc<Key>, SystemTime, Vec<Constraint>)>>>);
+#[cfg(feature = "smol-agent")]
+pub mod smol;
+
+struct KeyStore<Key>(Arc<RwLock<HashMap<Vec<u8>, (Arc<Key>, SystemTime, Vec<Constraint>)>>>);
 
 // NOTE: need to implement this since the derived version will require `Key: Clone` which is unecessary.
 impl<Key> Clone for KeyStore<Key> {
@@ -55,8 +58,13 @@ pub trait Agent<Key>: Clone + Send + 'static {
     }
 }
 
+/// The main entry point for running a server, where `Self` is the type of stream that the server is backed by.
+///
+/// The backing implementations provided are:
+///   * [`thrussh_agent::server::tokio`]
+///   * [`thrussh_agent::server::smol`]
 #[async_trait]
-pub trait Serve
+pub trait ServerStream
 where
     Self: Sized + Send + Sync + Unpin + 'static,
 {
@@ -70,7 +78,22 @@ where
         A: Agent<K> + Send + Sync + 'static;
 }
 
-pub fn revoke_key<K>(keys: KeyStore<K>, blob: Vec<u8>, now: SystemTime) {
+/// A helper trait for revoking a key in an asynchronous manner.
+///
+/// The revoking should be done on a spawned thread, however, since we are avoiding
+/// committing to a runtime we use this trait to allow for different `spawn` and `sleep` implementations.
+///
+/// Any implementation should just be of the form:
+/// ```rust
+/// spawn(async move { sleep(duration); revoke_key(keys, blob, now) });
+/// ```
+///
+/// Where `revoke_key` is the function defined as [`crate::server::revoke_key`].
+trait Revoker<K> {
+    fn revoke(&self, keys: KeyStore<K>, blob: Vec<u8>, now: SystemTime, duration: Duration);
+}
+
+fn revoke_key<K>(keys: KeyStore<K>, blob: Vec<u8>, now: SystemTime) {
     let mut keys = keys.0.write().unwrap();
     let delete = if let Some(&(_, time, _)) = keys.get(&blob) {
         time == now
@@ -80,10 +103,6 @@ pub fn revoke_key<K>(keys: KeyStore<K>, blob: Vec<u8>, now: SystemTime) {
     if delete {
         keys.remove(&blob);
     }
-}
-
-pub trait Revoker<K> {
-    fn revoke(&self, blob: Vec<u8>, keys: KeyStore<K>, now: SystemTime, duration: Duration);
 }
 
 impl<K> Agent<K> for () {
@@ -253,7 +272,7 @@ where
                     let blob = blob.clone();
                     let keys = self.keys.clone();
                     let duration = Duration::from_secs(seconds as u64);
-                    self.revoker.revoke(blob, keys, now, duration);
+                    self.revoker.revoke(keys, blob, now, duration);
                 } else if t == msg::CONSTRAIN_CONFIRM {
                     c.push(Constraint::Confirm)
                 } else {
