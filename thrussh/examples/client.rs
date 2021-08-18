@@ -6,6 +6,7 @@ extern crate tokio;
 use anyhow::Context;
 use std::sync::Arc;
 use thrussh::*;
+use thrussh_agent::client::ClientStream;
 use thrussh_keys::*;
 
 struct Client {}
@@ -34,9 +35,7 @@ async fn main() {
     let config = Arc::new(config);
     let sh = Client {};
 
-    let mut agent = thrussh_agent::client::AgentClient::connect_env()
-        .await
-        .unwrap();
+    let mut agent = tokio::net::UnixStream::connect_env().await.unwrap();
     let mut identities = agent.request_identities().await.unwrap();
     let mut session = thrussh::client::connect(config, "127.0.0.1:2200", sh)
         .await

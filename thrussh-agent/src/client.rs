@@ -1,13 +1,21 @@
+use std::fmt;
+use std::path::Path;
+
+use async_trait::async_trait;
+use byteorder::{BigEndian, ByteOrder};
+use cryptovec::CryptoVec;
+use thiserror::Error;
+use thrussh_encoding::{Encoding, Reader};
+
 use super::msg;
 use super::Constraint;
 use crate::key::{Private, Public, Signature};
-use byteorder::{BigEndian, ByteOrder};
-use cryptovec::CryptoVec;
-use std::fmt;
-use thiserror::Error;
-use thrussh_encoding::{Encoding, Reader};
-use tokio;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+
+#[cfg(feature = "tokio-agent")]
+pub mod tokio;
+
+#[cfg(feature = "smol-agent")]
+pub mod smol;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -44,13 +52,13 @@ pub enum Error {
 }
 
 /// SSH agent client.
-pub struct AgentClient<S: AsyncRead + AsyncWrite> {
+pub struct AgentClient<S> {
     stream: S,
     buf: CryptoVec,
 }
 
 // https://tools.ietf.org/html/draft-miller-ssh-agent-00#section-4.1
-impl<S: AsyncRead + AsyncWrite + Unpin> AgentClient<S> {
+impl<S: Unpin> AgentClient<S> {
     /// Build a future that connects to an SSH agent via the provided
     /// stream (on Unix, usually a Unix-domain socket).
     pub fn connect(stream: S) -> Self {
@@ -61,21 +69,22 @@ impl<S: AsyncRead + AsyncWrite + Unpin> AgentClient<S> {
     }
 }
 
-#[cfg(unix)]
-impl AgentClient<tokio::net::UnixStream> {
-    /// Build a future that connects to an SSH agent via the provided
-    /// stream (on Unix, usually a Unix-domain socket).
-    pub async fn connect_uds<P: AsRef<std::path::Path>>(path: P) -> Result<Self, Error> {
-        let stream = tokio::net::UnixStream::connect(path).await?;
-        Ok(AgentClient {
-            stream,
-            buf: CryptoVec::new(),
-        })
-    }
+/// The backing stream for the agent, which is left generic so that dependents can pick their runtime representation.
+///
+/// The different runtime implemenations are:
+///   * [`thrussh_agent::client::tokio`]
+///   * [`thrussh_agent::client::smol`]
+#[async_trait]
+pub trait ClientStream: Sized + Send + Sync {
+    /// How to connect the streaming socket
+    async fn connect_uds<P>(path: P) -> Result<AgentClient<Self>, Error>
+    where
+        P: AsRef<Path> + Send;
 
-    /// Build a future that connects to an SSH agent via the provided
-    /// stream (on Unix, usually a Unix-domain socket).
-    pub async fn connect_env() -> Result<Self, Error> {
+    /// How to read the response from the stream
+    async fn read_response(&mut self, buf: &mut CryptoVec) -> Result<(), Error>;
+
+    async fn connect_env() -> Result<AgentClient<Self>, Error> {
         let var = if let Ok(var) = std::env::var("SSH_AUTH_SOCK") {
             var
         } else {
@@ -90,35 +99,7 @@ impl AgentClient<tokio::net::UnixStream> {
     }
 }
 
-#[cfg(not(unix))]
-impl AgentClient<tokio::net::TcpStream> {
-    /// Build a future that connects to an SSH agent via the provided
-    /// stream (on Unix, usually a Unix-domain socket).
-    pub async fn connect_env() -> Result<Self, Error> {
-        Err(Error::AgentFailure)
-    }
-}
-
-impl<S: AsyncRead + AsyncWrite + Unpin> AgentClient<S> {
-    async fn read_response(&mut self) -> Result<(), Error> {
-        // Writing the message
-        self.stream.write_all(&self.buf).await?;
-        self.stream.flush().await?;
-
-        // Reading the length
-        self.buf.clear();
-        self.buf.resize(4);
-        self.stream.read_exact(&mut self.buf).await?;
-
-        // Reading the rest of the buffer
-        let len = BigEndian::read_u32(&self.buf) as usize;
-        self.buf.clear();
-        self.buf.resize(len);
-        self.stream.read_exact(&mut self.buf).await?;
-
-        Ok(())
-    }
-
+impl<S: ClientStream + Unpin> AgentClient<S> {
     /// Send a key to the agent, with a (possibly empty) slice of
     /// constraints to apply when using the key to sign.
     pub async fn add_identity<K>(
@@ -162,7 +143,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin> AgentClient<S> {
         let len = self.buf.len() - 4;
         BigEndian::write_u32(&mut self.buf[..], len as u32);
 
-        self.read_response().await?;
+        self.stream.read_response(&mut self.buf).await?;
         Ok(())
     }
 
@@ -205,7 +186,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin> AgentClient<S> {
         }
         let len = self.buf.len() - 4;
         BigEndian::write_u32(&mut self.buf[0..], len as u32);
-        self.read_response().await?;
+        self.stream.read_response(&mut self.buf).await?;
         Ok(())
     }
 
@@ -217,7 +198,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin> AgentClient<S> {
         self.buf.extend_ssh_string(passphrase);
         let len = self.buf.len() - 4;
         BigEndian::write_u32(&mut self.buf[0..], len as u32);
-        self.read_response().await?;
+        self.stream.read_response(&mut self.buf).await?;
         Ok(())
     }
 
@@ -229,7 +210,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin> AgentClient<S> {
         self.buf.extend_ssh_string(passphrase);
         let len = self.buf.len() - 4;
         BigEndian::write_u32(&mut self.buf[0..], len as u32);
-        self.read_response().await?;
+        self.stream.read_response(&mut self.buf).await?;
         Ok(())
     }
 
@@ -246,7 +227,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin> AgentClient<S> {
         let len = self.buf.len() - 4;
         BigEndian::write_u32(&mut self.buf[0..], len as u32);
 
-        self.read_response().await?;
+        self.stream.read_response(&mut self.buf).await?;
         debug!("identities: {:?}", &self.buf[..]);
         let mut keys = Vec::new();
         if self.buf[0] == msg::IDENTITIES_ANSWER {
@@ -277,7 +258,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin> AgentClient<S> {
         debug!("sign_request: {:?}", data);
         let hash = self.prepare_sign_request(public, &data);
         async move {
-            let resp = self.read_response().await;
+            let resp = self.stream.read_response(&mut self.buf).await;
             debug!("resp = {:?}", &self.buf[..]);
             if let Err(e) = resp {
                 return (self, Err(e));
@@ -340,7 +321,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin> AgentClient<S> {
         debug!("sign_request: {:?}", data);
         self.prepare_sign_request(public, &data);
         async move {
-            let resp = self.read_response().await;
+            let resp = self.stream.read_response(&mut self.buf).await;
             if let Err(e) = resp {
                 return (self, Err(e));
             }
@@ -363,14 +344,13 @@ impl<S: AsyncRead + AsyncWrite + Unpin> AgentClient<S> {
     where
         K: Public + fmt::Debug,
         Sig: Signature,
-        Sig::Error: std::error::Error + Send + Sync +
-	'static,
+        Sig::Error: std::error::Error + Send + Sync + 'static,
     {
         debug!("sign_request: {:?}", data);
         self.prepare_sign_request(public, data);
 
         async move {
-            if let Err(e) = self.read_response().await {
+            if let Err(e) = self.stream.read_response(&mut self.buf).await {
                 return (self, Err(e));
             }
             if !self.buf.is_empty() && self.buf[0] == msg::SIGN_RESPONSE {
@@ -393,7 +373,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin> AgentClient<S> {
         public.write_blob(&mut self.buf);
         let len = self.buf.len() - 4;
         BigEndian::write_u32(&mut self.buf[0..], len as u32);
-        self.read_response().await?;
+        self.stream.read_response(&mut self.buf).await?;
         Ok(())
     }
 
@@ -406,7 +386,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin> AgentClient<S> {
         self.buf.extend_ssh_string(pin);
         let len = self.buf.len() - 4;
         BigEndian::write_u32(&mut self.buf[0..], len as u32);
-        self.read_response().await?;
+        self.stream.read_response(&mut self.buf).await?;
         Ok(())
     }
 
@@ -416,7 +396,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin> AgentClient<S> {
         self.buf.resize(4);
         self.buf.push(msg::REMOVE_ALL_IDENTITIES);
         BigEndian::write_u32(&mut self.buf[0..], 5);
-        self.read_response().await?;
+        self.stream.read_response(&mut self.buf).await?;
         Ok(())
     }
 
@@ -429,7 +409,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin> AgentClient<S> {
         self.buf.extend_ssh_string(ext);
         let len = self.buf.len() - 4;
         BigEndian::write_u32(&mut self.buf[0..], len as u32);
-        self.read_response().await?;
+        self.stream.read_response(&mut self.buf).await?;
         Ok(())
     }
 
@@ -441,7 +421,7 @@ impl<S: AsyncRead + AsyncWrite + Unpin> AgentClient<S> {
         self.buf.extend_ssh_string(typ);
         let len = self.buf.len() - 4;
         BigEndian::write_u32(&mut self.buf[0..], len as u32);
-        self.read_response().await?;
+        self.stream.read_response(&mut self.buf).await?;
 
         let mut r = self.buf.reader(1);
         ext.extend(r.read_string()?);

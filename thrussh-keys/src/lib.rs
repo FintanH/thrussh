@@ -822,7 +822,7 @@ Cog3JMeTrb3LiPHgN6gU2P30MRp6L1j1J/MtlOAr5rux
         core.spawn(async move {
             let mut listener = tokio::net::UnixListener::bind(&agent_path_).unwrap();
 
-            agent::server::serve(
+            agent::server::ServerStream::serve(
                 Incoming {
                     listener: &mut listener,
                 },

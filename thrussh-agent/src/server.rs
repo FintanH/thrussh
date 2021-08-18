@@ -1,7 +1,8 @@
+use async_trait::async_trait;
 use byteorder::{BigEndian, ByteOrder};
 use cryptovec::CryptoVec;
 use futures::future::Future;
-use futures::stream::{Stream, StreamExt};
+use futures::stream::Stream;
 use std;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -9,20 +10,23 @@ use std::time::Duration;
 use std::time::SystemTime;
 use thiserror::Error;
 use thrussh_encoding::{Encoding, Position, Reader};
-use tokio;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
-use tokio::time::sleep;
 
 use super::msg;
 use super::Constraint;
 use crate::key::Private;
+
+#[cfg(feature = "tokio-agent")]
+pub mod tokio;
+
+#[cfg(feature = "smol-agent")]
+pub mod smol;
 
 struct KeyStore<Key>(Arc<RwLock<HashMap<Vec<u8>, (Arc<Key>, SystemTime, Vec<Constraint>)>>>);
 
 // NOTE: need to implement this since the derived version will require `Key: Clone` which is unecessary.
 impl<Key> Clone for KeyStore<Key> {
     fn clone(&self) -> Self {
-	KeyStore(self.0.clone())
+        KeyStore(self.0.clone())
     }
 }
 
@@ -54,31 +58,51 @@ pub trait Agent<Key>: Clone + Send + 'static {
     }
 }
 
-pub async fn serve<K, S, L, A>(mut listener: L, agent: A) -> Result<(), Error>
+/// The main entry point for running a server, where `Self` is the type of stream that the server is backed by.
+///
+/// The backing implementations provided are:
+///   * [`thrussh_agent::server::tokio`]
+///   * [`thrussh_agent::server::smol`]
+#[async_trait]
+pub trait ServerStream
 where
-    K: Private + Send + Sync + 'static,
-K::Error: std::error::Error + Send + Sync + 'static,
-    S: AsyncRead + AsyncWrite + Send + Sync + Unpin + 'static,
-    L: Stream<Item = tokio::io::Result<S>> + Unpin,
-    A: Agent<K> + Send + Sync + 'static,
+    Self: Sized + Send + Sync + Unpin + 'static,
 {
-    let keys = KeyStore(Arc::new(RwLock::new(HashMap::new())));
-    let lock = Lock(Arc::new(RwLock::new(CryptoVec::new())));
-    while let Some(Ok(stream)) = listener.next().await {
-        let mut buf = CryptoVec::new();
-        buf.resize(4);
-        tokio::spawn(
-            (Connection {
-                lock: lock.clone(),
-                keys: keys.clone(),
-                agent: Some(agent.clone()),
-                s: stream,
-                buf: CryptoVec::new(),
-            })
-            .run(),
-        );
+    type Error;
+
+    async fn serve<K, L, A>(listener: L, agent: A) -> Result<(), Self::Error>
+    where
+        K: Private + Send + Sync + 'static,
+        K::Error: std::error::Error + Send + Sync + 'static,
+        L: Stream<Item = Result<Self, Self::Error>> + Send + Unpin,
+        A: Agent<K> + Send + Sync + 'static;
+}
+
+/// A helper trait for revoking a key in an asynchronous manner.
+///
+/// The revoking should be done on a spawned thread, however, since we are avoiding
+/// committing to a runtime we use this trait to allow for different `spawn` and `sleep` implementations.
+///
+/// Any implementation should just be of the form:
+/// ```rust
+/// spawn(async move { sleep(duration); revoke_key(keys, blob, now) });
+/// ```
+///
+/// Where `revoke_key` is the function defined as [`crate::server::revoke_key`].
+trait Revoker<K> {
+    fn revoke(&self, keys: KeyStore<K>, blob: Vec<u8>, now: SystemTime, duration: Duration);
+}
+
+fn revoke_key<K>(keys: KeyStore<K>, blob: Vec<u8>, now: SystemTime) {
+    let mut keys = keys.0.write().unwrap();
+    let delete = if let Some(&(_, time, _)) = keys.get(&blob) {
+        time == now
+    } else {
+        false
+    };
+    if delete {
+        keys.remove(&blob);
     }
-    Ok(())
 }
 
 impl<K> Agent<K> for () {
@@ -87,42 +111,21 @@ impl<K> Agent<K> for () {
     }
 }
 
-struct Connection<Key, S: AsyncRead + AsyncWrite + Send + 'static, A: Agent<Key>> {
+struct Connection<Key, A: Agent<Key>> {
     lock: Lock,
     keys: KeyStore<Key>,
     agent: Option<A>,
-    s: S,
+    revoker: Box<dyn Revoker<Key> + Send + Sync + 'static>,
     buf: CryptoVec,
 }
 
-impl<K, S, A> Connection<K, S, A>
+impl<K, A> Connection<K, A>
 where
     K: Private + Send + Sync + 'static,
-K::Error: std::error::Error + Send + Sync + 'static,
-    S: AsyncRead + AsyncWrite + Send + Unpin + 'static,
+    K::Error: std::error::Error + Send + Sync + 'static,
     A: Agent<K> + Send + 'static,
 {
-    async fn run(mut self) -> Result<(), Error> {
-        let mut writebuf = CryptoVec::new();
-        loop {
-            // Reading the length
-            self.buf.clear();
-            self.buf.resize(4);
-            self.s.read_exact(&mut self.buf).await?;
-            // Reading the rest of the buffer
-            let len = BigEndian::read_u32(&self.buf) as usize;
-            self.buf.clear();
-            self.buf.resize(len);
-            self.s.read_exact(&mut self.buf).await?;
-            // respond
-            writebuf.clear();
-            self.respond(&mut writebuf).await?;
-            self.s.write_all(&writebuf).await?;
-            self.s.flush().await?
-        }
-    }
-
-    async fn respond(&mut self, writebuf: &mut CryptoVec) -> Result<(), Error> {
+    pub async fn respond(&mut self, writebuf: &mut CryptoVec) -> Result<(), Error> {
         let is_locked = {
             if let Ok(password) = self.lock.0.read() {
                 !password.is_empty()
@@ -252,10 +255,10 @@ K::Error: std::error::Error + Send + Sync + 'static,
         writebuf: &mut CryptoVec,
     ) -> Result<bool, Error> {
         let (blob, key) = match K::read(&mut r).map_err(|err| Error::Private(Box::new(err)))? {
-	    Some((blob, key)) => (blob, key),
+            Some((blob, key)) => (blob, key),
             None => return Ok(false),
         };
-	writebuf.push(msg::SUCCESS);
+        writebuf.push(msg::SUCCESS);
         let mut w = self.keys.0.write().unwrap();
         let now = SystemTime::now();
         if constrained {
@@ -268,18 +271,8 @@ K::Error: std::error::Error + Send + Sync + 'static,
                     c.push(Constraint::KeyLifetime { seconds });
                     let blob = blob.clone();
                     let keys = self.keys.clone();
-                    tokio::spawn(async move {
-                        sleep(Duration::from_secs(seconds as u64)).await;
-                        let mut keys = keys.0.write().unwrap();
-                        let delete = if let Some(&(_, time, _)) = keys.get(&blob) {
-                            time == now
-                        } else {
-                            false
-                        };
-                        if delete {
-                            keys.remove(&blob);
-                        }
-                    });
+                    let duration = Duration::from_secs(seconds as u64);
+                    self.revoker.revoke(keys, blob, now, duration);
                 } else if t == msg::CONSTRAIN_CONFIRM {
                     c.push(Constraint::Confirm)
                 } else {
@@ -323,7 +316,8 @@ K::Error: std::error::Error + Send + Sync + 'static,
         };
         writebuf.push(msg::SIGN_RESPONSE);
         let data = r.read_string()?;
-        key.write_signature(writebuf, data).map_err(|err| Error::Private(Box::new(err)))?;
+        key.write_signature(writebuf, data)
+            .map_err(|err| Error::Private(Box::new(err)))?;
         let len = writebuf.len();
         BigEndian::write_u32(writebuf, (len - 4) as u32);
 

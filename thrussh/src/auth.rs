@@ -76,8 +76,8 @@ pub enum AgentAuthError {
     Client(#[from] thrussh_agent::client::Error),
 }
 
-impl<R: AsyncRead + AsyncWrite + Unpin + Send + 'static> Signer
-    for thrussh_agent::client::AgentClient<R>
+impl<R: thrussh_agent::client::ClientStream + AsyncRead + AsyncWrite + Unpin + Send + 'static>
+    Signer for thrussh_agent::client::AgentClient<R>
 {
     type Error = AgentAuthError;
     type Future = std::pin::Pin<
