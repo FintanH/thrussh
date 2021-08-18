@@ -28,8 +28,7 @@ where
 }
 
 #[async_trait]
-impl ServerStream for UnixStream
-{
+impl ServerStream for UnixStream {
     type Error = std::io::Error;
 
     async fn serve<K, L, A>(mut listener: L, agent: A) -> Result<(), Error>

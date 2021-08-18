@@ -69,11 +69,19 @@ impl<S: Unpin> AgentClient<S> {
     }
 }
 
+/// The backing stream for the agent, which is left generic so that dependents can pick their runtime representation.
+///
+/// The different runtime implemenations are:
+///   * [`thrussh_agent::client::tokio`]
+///   * [`thrussh_agent::client::smol`]
 #[async_trait]
 pub trait ClientStream: Sized + Send + Sync {
+    /// How to connect the streaming socket
     async fn connect_uds<P>(path: P) -> Result<AgentClient<Self>, Error>
     where
         P: AsRef<Path> + Send;
+
+    /// How to read the response from the stream
     async fn read_response(&mut self, buf: &mut CryptoVec) -> Result<(), Error>;
 
     async fn connect_env() -> Result<AgentClient<Self>, Error> {

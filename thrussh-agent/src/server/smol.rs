@@ -2,13 +2,13 @@ use async_trait::async_trait;
 use byteorder::{BigEndian, ByteOrder};
 use cryptovec::CryptoVec;
 use futures::stream::{Stream, StreamExt};
+use smol::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use smol::net::unix::UnixStream;
+use smol::Timer;
 use std;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, SystemTime};
-use smol::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
-use smol::net::unix::UnixStream;
-use smol::Timer;
 
 use super::{revoke_key, Agent, Connection, Error, KeyStore, Lock, Revoker, ServerStream};
 use crate::key::Private;
@@ -23,13 +23,13 @@ where
         smol::spawn(async move {
             Timer::after(duration).await;
             revoke_key(keys, blob, now)
-        }).detach();
+        })
+        .detach();
     }
 }
 
 #[async_trait]
-impl ServerStream for UnixStream
-{
+impl ServerStream for UnixStream {
     type Error = std::io::Error;
 
     async fn serve<K, L, A>(mut listener: L, agent: A) -> Result<(), Error>
@@ -53,7 +53,8 @@ impl ServerStream for UnixStream
                     buf: CryptoVec::new(),
                 },
                 stream,
-            )).detach();
+            ))
+            .detach();
         }
         Ok(())
     }
@@ -84,4 +85,3 @@ where
         stream.flush().await?
     }
 }
-
