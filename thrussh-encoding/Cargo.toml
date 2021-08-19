@@ -2,6 +2,10 @@
 name = "thrussh-encoding"
 version = "0.1.0"
 edition = "2018"
+authors = ["Pierre-Étienne Meunier <pe@pijul.org>"]
+description = "Encoding primitives"
+keywords = ["ssh"]
+license = "Apache-2.0"
 
 [dependencies]
 byteorder = "1.4"
