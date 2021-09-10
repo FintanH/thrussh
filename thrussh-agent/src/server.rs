@@ -70,7 +70,7 @@ where
 {
     type Error;
 
-    async fn serve<K, L, A>(listener: L, agent: A) -> Result<(), Error>
+    async fn serve<K, L, A>(listener: L, agent: A) -> Result<(), Self::Error>
     where
         K: Private + Send + Sync + 'static,
         K::Error: std::error::Error + Send + Sync + 'static,

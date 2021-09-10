@@ -4,6 +4,8 @@ use async_trait::async_trait;
 use byteorder::{BigEndian, ByteOrder};
 use cryptovec::CryptoVec;
 use smol::io::{AsyncReadExt, AsyncWriteExt};
+
+#[cfg(unix)]
 use smol::net::unix::UnixStream;
 
 #[cfg(not(unix))]
@@ -14,17 +16,20 @@ use super::{AgentClient, ClientStream, Error};
 #[cfg(not(unix))]
 #[async_trait]
 impl ClientStream for TcpStream {
-    async fn connect_uds<P>(path: P) -> Result<AgentClient<Self>, Error> {
+    async fn connect_uds<P>(_: P) -> Result<AgentClient<Self>, Error>
+    where
+        P: AsRef<Path> + Send
+    {
         Err(Error::AgentFailure)
     }
 
-    async fn read_response(&mut self, buf: &mut CryptoVec) -> Result<(), Error> {
+    async fn read_response(&mut self, _: &mut CryptoVec) -> Result<(), Error> {
         Err(Error::AgentFailure)
     }
 
     /// Build a future that connects to an SSH agent via the provided
     /// stream (on Unix, usually a Unix-domain socket).
-    async fn connect_env() -> Result<Self, Error> {
+    async fn connect_env() -> Result<AgentClient<Self>, Error> {
         Err(Error::AgentFailure)
     }
 }

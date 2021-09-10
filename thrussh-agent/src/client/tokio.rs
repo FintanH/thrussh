@@ -5,6 +5,8 @@ use byteorder::{BigEndian, ByteOrder};
 use cryptovec::CryptoVec;
 use tokio;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+#[cfg(unix)]
 use tokio::net::UnixStream;
 
 #[cfg(not(unix))]
