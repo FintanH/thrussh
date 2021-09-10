@@ -3,12 +3,17 @@ use byteorder::{BigEndian, ByteOrder};
 use cryptovec::CryptoVec;
 use futures::stream::{Stream, StreamExt};
 use smol::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
-use smol::net::unix::UnixStream;
 use smol::Timer;
 use std;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, SystemTime};
+
+#[cfg(unix)]
+use smol::net::unix::UnixStream;
+
+#[cfg(not(unix))]
+use smol::net::TcpStream;
 
 use super::{revoke_key, Agent, Connection, Error, KeyStore, Lock, Revoker, ServerStream};
 use crate::key::Private;
@@ -28,11 +33,12 @@ where
     }
 }
 
+#[cfg(unix)]
 #[async_trait]
 impl ServerStream for UnixStream {
     type Error = std::io::Error;
 
-    async fn serve<K, L, A>(mut listener: L, agent: A) -> Result<(), Error>
+    async fn serve<K, L, A>(mut listener: L, agent: A) -> Result<(), Self::Error>
     where
         K: Private + Send + Sync + 'static,
         K::Error: std::error::Error + Send + Sync + 'static,
@@ -57,6 +63,24 @@ impl ServerStream for UnixStream {
             .detach();
         }
         Ok(())
+    }
+}
+
+#[cfg(not(unix))]
+#[async_trait]
+impl ServerStream for TcpStream {
+    type Error = std::io::Error;
+
+    async fn serve<K, L, A>(_: L, _: A) -> Result<(), Self::Error> 
+	    where
+        K: Private + Send + Sync + 'static,
+        K::Error: std::error::Error + Send + Sync + 'static,
+        L: Stream<Item = Result<Self, Self::Error>> + Send + Unpin,
+        A: Agent<K> + Send + Sync + 'static
+    {
+	use std::io::{Error, ErrorKind};
+	
+	Err(Error::new(ErrorKind::Unsupported, "non-unix systems are not supported"))
     }
 }
 
