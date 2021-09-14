@@ -6,10 +6,10 @@ use cryptovec::CryptoVec;
 use smol::io::{AsyncReadExt, AsyncWriteExt};
 
 #[cfg(unix)]
-use smol::net::unix::UnixStream;
+pub use smol::net::unix::UnixStream;
 
 #[cfg(not(unix))]
-use smol::net::TcpStream;
+pub use smol::net::TcpStream;
 
 use super::{AgentClient, ClientStream, Error};
 

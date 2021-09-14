@@ -7,10 +7,10 @@ use tokio;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[cfg(unix)]
-use tokio::net::UnixStream;
+pub use tokio::net::UnixStream;
 
 #[cfg(not(unix))]
-use tokio::net::TcpStream;
+pub use tokio::net::TcpStream;
 
 use super::{AgentClient, ClientStream, Error};
 
