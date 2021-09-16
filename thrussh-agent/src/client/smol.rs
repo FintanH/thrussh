@@ -18,7 +18,7 @@ use super::{AgentClient, ClientStream, Error};
 impl ClientStream for TcpStream {
     async fn connect_uds<P>(_: P) -> Result<AgentClient<Self>, Error>
     where
-        P: AsRef<Path> + Send
+        P: AsRef<Path> + Send,
     {
         Err(Error::AgentFailure)
     }

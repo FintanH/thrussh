@@ -1,8 +1,3 @@
-/*
-#[cfg(all(feature = "tokio-agent", feature = "smol-agent"))]
-compile_error!("feature \"tokio-agent\" and feature \"smol-agent\" cannot be enabled at the same time");
- */
-
 #[macro_use]
 extern crate log;
 

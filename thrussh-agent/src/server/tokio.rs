@@ -69,16 +69,19 @@ impl ServerStream for UnixStream {
 impl ServerStream for TcpStream {
     type Error = std::io::Error;
 
-    async fn serve<K, L, A>(_: L, _: A) -> Result<(), Self::Error> 
-	    where
+    async fn serve<K, L, A>(_: L, _: A) -> Result<(), Self::Error>
+    where
         K: Private + Send + Sync + 'static,
         K::Error: std::error::Error + Send + Sync + 'static,
         L: Stream<Item = Result<Self, Self::Error>> + Send + Unpin,
-        A: Agent<K> + Send + Sync + 'static
+        A: Agent<K> + Send + Sync + 'static,
     {
-	use std::io::{Error, ErrorKind};
-	
-	Err(Error::new(ErrorKind::Unsupported, "non-unix systems are not supported"))
+        use std::io::{Error, ErrorKind};
+
+        Err(Error::new(
+            ErrorKind::Unsupported,
+            "non-unix systems are not supported",
+        ))
     }
 }
 

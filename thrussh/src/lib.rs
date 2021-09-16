@@ -193,12 +193,14 @@
 //!
 //! #[tokio::main]
 //! async fn main() {
+//!   use thrussh_agent::client::ClientStream as _;
+//!
 //!   let config = thrussh::client::Config::default();
 //!   let config = Arc::new(config);
 //!   let sh = Client{};
 //!
 //!   let key = thrussh_keys::key::KeyPair::generate_ed25519().unwrap();
-//!   let mut agent = thrussh_agent::client::AgentClient::connect_env().await.unwrap();
+//!   let mut agent = thrussh_agent::client::tokio::UnixStream::connect_env().await.unwrap();
 //!   agent.add_identity(&key, &[]).await.unwrap();
 //!   let mut session = thrussh::client::connect(config, "localhost:22", sh).await.unwrap();
 //!   if session.authenticate_future(std::env::var("USER").unwrap(), key.clone_public_key(), agent).await.1.unwrap() {
