@@ -866,7 +866,7 @@ Cog3JMeTrb3LiPHgN6gU2P30MRp6L1j1J/MtlOAr5rux
         listener: &'a mut tokio::net::UnixListener,
     }
     impl futures::stream::Stream for Incoming<'_> {
-        type Item = Result<tokio::net::UnixStream, std::io::Error>;
+        type Item = Result<tokio::net::UnixStream, thrussh_agent::server::Error>;
 
         fn poll_next(
             self: std::pin::Pin<&mut Self>,
