@@ -836,7 +836,13 @@ Cog3JMeTrb3LiPHgN6gU2P30MRp6L1j1J/MtlOAr5rux
             let stream = tokio::net::UnixStream::connect(&agent_path).await?;
             let mut client = agent::client::AgentClient::connect(stream);
             client
-                .add_identity(&key, &[agent::Constraint::KeyLifetime { seconds: 60 }])
+                .add_identity(
+                    &key,
+                    &[
+                        agent::Constraint::KeyLifetime { seconds: 60 },
+                        agent::Constraint::Confirm,
+                    ],
+                )
                 .await?;
             client.request_identities::<key::PublicKey>().await?;
             let buf = cryptovec::CryptoVec::from_slice(b"blabla");

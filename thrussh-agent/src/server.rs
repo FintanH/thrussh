@@ -262,10 +262,8 @@ where
         let mut w = self.keys.0.write().unwrap();
         let now = SystemTime::now();
         if constrained {
-            let n = r.read_u32()?;
             let mut c = Vec::new();
-            for _ in 0..n {
-                let t = r.read_byte()?;
+            while let Some(t) = r.read_byte().ok() {
                 if t == msg::CONSTRAIN_LIFETIME {
                     let seconds = r.read_u32()?;
                     c.push(Constraint::KeyLifetime { seconds });
@@ -279,7 +277,7 @@ where
                     return Ok(false);
                 }
             }
-            w.insert(blob, (Arc::new(key), now, Vec::new()));
+            w.insert(blob, (Arc::new(key), now, c));
         } else {
             w.insert(blob, (Arc::new(key), now, Vec::new()));
         }
