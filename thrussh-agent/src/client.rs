@@ -121,7 +121,6 @@ impl<S: ClientStream + Unpin> AgentClient<S> {
         key.write(&mut self.buf)
             .map_err(|err| Error::Private(Box::new(err)))?;
         if !constraints.is_empty() {
-            self.buf.push_u32_be(constraints.len() as u32);
             for cons in constraints {
                 match *cons {
                     Constraint::KeyLifetime { seconds } => {
