@@ -572,7 +572,8 @@ impl agent_key::Private for KeyPair {
                 buf.extend_ssh_string(public);
                 buf.push_u32_be(64);
                 buf.extend(&secret.key);
-                buf.extend_ssh_string(b"");
+                // The GnuPG SSH agent fails to add keys with empty comments.
+                buf.extend_ssh_string(b"key");
             }
             #[cfg(feature = "openssl")]
             KeyPair::RSA { ref key, .. } => {
@@ -590,7 +591,7 @@ impl agent_key::Private for KeyPair {
                 }
                 buf.extend_ssh_mpint(&key.p().unwrap().to_vec());
                 buf.extend_ssh_mpint(&key.q().unwrap().to_vec());
-                buf.extend_ssh_string(b"");
+                buf.extend_ssh_string(b"key");
             }
         }
         Ok(())
