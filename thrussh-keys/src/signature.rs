@@ -20,7 +20,7 @@ pub enum Signature {
 
 impl Signature {
     pub fn to_base64(&self) -> String {
-        use thrussh_encoding::Encoding;
+        use lnk_thrussh_encoding::Encoding;
         let mut bytes_ = Vec::new();
         match self {
             Signature::Ed25519(ref bytes) => {
@@ -52,7 +52,7 @@ impl Signature {
 
     pub fn from_base64(s: &[u8]) -> Result<Self, Error> {
         let bytes_ = data_encoding::BASE64_NOPAD.decode(s)?;
-        use thrussh_encoding::Reader;
+        use lnk_thrussh_encoding::Reader;
         let mut r = bytes_.reader(0);
         let sig = r.read_string()?;
         let mut r = sig.reader(0);

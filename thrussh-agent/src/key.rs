@@ -1,5 +1,5 @@
-use cryptovec::CryptoVec;
-use thrussh_encoding::Position;
+use lnk_cryptovec::CryptoVec;
+use lnk_thrussh_encoding::Position;
 
 pub trait Signature: Sized {
     type Error;

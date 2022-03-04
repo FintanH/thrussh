@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use byteorder::{BigEndian, ByteOrder};
-use cryptovec::CryptoVec;
+use lnk_cryptovec::CryptoVec;
 use futures::stream::{Stream, StreamExt};
 use std;
 use std::collections::HashMap;
@@ -35,7 +35,7 @@ where
 #[cfg(unix)]
 #[async_trait]
 impl ServerStream for UnixStream {
-    type Error = Error;
+    type Error = std::io::Error;
 
     async fn serve<K, L, A>(mut listener: L, agent: A) -> Result<(), Self::Error>
     where

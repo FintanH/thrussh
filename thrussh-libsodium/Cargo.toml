@@ -1,13 +1,12 @@
 [package]
-name = "thrussh-libsodium"
+name = "lnk-thrussh-libsodium"
 version = "0.2.1"
-license = "Apache-2.0/MIT"
-description = "Straightforward bindings to libsodium"
-homepage = "https://nest.pijul.com/pijul/thrussh"
-repository = "https://nest.pijul.com/pijul/thrussh"
-authors = ["pe@pijul.org <pe@pijul.org>"]
-include = [ "Cargo.toml", "src/lib.rs" ]
 edition = "2018"
+authors = ["Fintan Halpenny <fintan.halpenny@gmail.com>", "Pierre-Étienne Meunier <pe@pijul.org>"]
+description = "Straightforward bindings to libsodium"
+license = "Apache-2.0/MIT"
+repository = "https://github.com/FintanH/thrussh"
+include = [ "Cargo.toml", "src/lib.rs" ]
 
 [dependencies]
 libc = "0.2"

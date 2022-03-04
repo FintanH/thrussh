@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use byteorder::{BigEndian, ByteOrder};
-use cryptovec::CryptoVec;
+use lnk_cryptovec::CryptoVec;
 use futures::future::Future;
 use futures::stream::Stream;
 use std;
@@ -9,7 +9,7 @@ use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use std::time::SystemTime;
 use thiserror::Error;
-use thrussh_encoding::{Encoding, Position, Reader};
+use lnk_thrussh_encoding::{Encoding, Position, Reader};
 
 use super::msg;
 use super::Constraint;
@@ -36,7 +36,7 @@ struct Lock(Arc<RwLock<CryptoVec>>);
 #[derive(Debug, Error)]
 pub enum Error {
     #[error(transparent)]
-    Encoding(#[from] thrussh_encoding::Error),
+    Encoding(#[from] lnk_thrussh_encoding::Error),
 
     #[error(transparent)]
     Private(Box<dyn std::error::Error + Send + Sync + 'static>),
@@ -84,7 +84,7 @@ where
 /// committing to a runtime we use this trait to allow for different `spawn` and `sleep` implementations.
 ///
 /// Any implementation should just be of the form:
-/// ```rust
+/// ```txt
 /// spawn(async move { sleep(duration); revoke_key(keys, blob, now) });
 /// ```
 ///

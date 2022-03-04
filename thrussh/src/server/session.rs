@@ -1,7 +1,7 @@
 use super::*;
 use crate::msg;
 use std::sync::Arc;
-use thrussh_encoding::Encoding;
+use lnk_thrussh_encoding::Encoding;
 use tokio::sync::mpsc::{Receiver, Sender};
 
 /// A connected server session. This type is unique to a client.

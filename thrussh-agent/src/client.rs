@@ -3,9 +3,9 @@ use std::path::Path;
 
 use async_trait::async_trait;
 use byteorder::{BigEndian, ByteOrder};
-use cryptovec::CryptoVec;
+use lnk_cryptovec::CryptoVec;
 use thiserror::Error;
-use thrussh_encoding::{Encoding, Reader};
+use lnk_thrussh_encoding::{Encoding, Reader};
 
 use super::msg;
 use super::Constraint;
@@ -33,7 +33,7 @@ pub enum Error {
     BadAuthSock,
 
     #[error(transparent)]
-    Encoding(#[from] thrussh_encoding::Error),
+    Encoding(#[from] lnk_thrussh_encoding::Error),
 
     #[error("Environment variable `{0}` not found")]
     EnvVar(&'static str),

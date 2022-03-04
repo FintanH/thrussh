@@ -1,13 +1,11 @@
 [package]
-name = "thrussh-keys"
+name = "lnk-thrussh-keys"
 version = "0.21.0"
 edition = "2018"
-authors = ["Pierre-Étienne Meunier <pe@pijul.org>"]
+authors = ["Fintan Halpenny <fintan.halpenny@gmail.com>", "Pierre-Étienne Meunier <pe@pijul.org>"]
 description = "Deal with SSH keys: load them, decrypt them, call an SSH agent."
+repository = "https://github.com/FintanH/thrussh"
 keywords = ["ssh"]
-repository = "https://nest.pijul.com/pijul/thrussh"
-homepage = "https://pijul.org/thrussh"
-documentation = "https://docs.rs/thrussh-keys"
 license = "Apache-2.0"
 include = [
 "Cargo.toml",
@@ -34,7 +32,7 @@ byteorder = "1.4"
 tokio = { version = "1.6", features = [ "io-util", "rt-multi-thread", "time", "net" ] }
 tokio-stream = { version = "0.1", features = [ "net" ] }
 futures = "0.3"
-cryptovec = "0.6.0"
+lnk-cryptovec = "0.6.0"
 yasna = { version = "0.4.0", features = [ "bit-vec", "num-bigint" ] }
 num-bigint = "0.4"
 num-integer = "0.1"
@@ -45,9 +43,9 @@ serde = "1.0"
 dirs = "3.0"
 log = "0.4"
 thiserror = "1.0"
-thrussh-agent = "0.1"
-thrussh-encoding = "0.1"
-thrussh-libsodium = "0.2"
+lnk-thrussh-agent = "0.1"
+lnk-thrussh-encoding = "0.1"
+lnk-thrussh-libsodium = "0.2"
 sha2 = "0.9"
 pbkdf2 = "0.8"
 hmac = "0.11"

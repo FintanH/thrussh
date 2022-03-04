@@ -1,12 +1,10 @@
 [package]
-name = "thrussh"
+name = "lnk-thrussh"
 description = "A client and server SSH library."
 keywords = ["ssh"]
 version = "0.33.5"
-authors = ["Pierre-Étienne Meunier <pe@pijul.org>"]
-repository = "https://nest.pijul.com/pijul/thrussh"
-homepage = "https://pijul.org/thrussh"
-documentation = "https://docs.rs/thrussh"
+authors = ["Fintan Halpenny <fintan.halpenny@gmail.com>", "Pierre-Étienne Meunier <pe@pijul.org>"]
+repository = "https://github.com/FintanH/thrussh"
 license = "Apache-2.0"
 readme = "../README.md"
 include = [
@@ -45,12 +43,12 @@ default = [ "flate2" ]
 byteorder = "1.3"
 bitflags = "1.2"
 log = "0.4"
-thrussh-keys = { version = "0.21.0", path = "../thrussh-keys" }
+lnk-thrussh-keys = { version = "0.21.0", path = "../thrussh-keys" }
 openssl = { version = "0.10", optional = true }
-thrussh-agent = "0.1"
-thrussh-encoding = "0.1"
-thrussh-libsodium = "0.2"
-cryptovec = "0.6.0"
+lnk-thrussh-agent = "0.1"
+lnk-thrussh-encoding = "0.1"
+lnk-thrussh-libsodium = "0.2"
+lnk-cryptovec = "0.6.0"
 tokio = { version = "1.0", features = [ "io-util", "rt-multi-thread", "time", "net", "sync", "macros", "process" ] }
 futures = "0.3"
 thiserror = "1.0"

@@ -14,13 +14,13 @@
 //
 use crate::{cipher, kex, msg, Error};
 use std::str::from_utf8;
-use thrussh_keys::key;
+use lnk_thrussh_keys::key;
 // use super::mac; // unimplemented
 use crate::compression::*;
-use cryptovec::CryptoVec;
+use lnk_cryptovec::CryptoVec;
 use rand::RngCore;
-use thrussh_encoding::{Encoding, Reader};
-use thrussh_keys::key::{KeyPair, PublicKey};
+use lnk_thrussh_encoding::{Encoding, Reader};
+use lnk_thrussh_keys::key::{KeyPair, PublicKey};
 
 #[derive(Debug)]
 pub struct Names {
@@ -95,9 +95,9 @@ impl Named for () {
 }
 
 #[cfg(not(feature = "openssl"))]
-use thrussh_keys::key::ED25519;
+use lnk_thrussh_keys::key::ED25519;
 #[cfg(feature = "openssl")]
-use thrussh_keys::key::{ED25519, SSH_RSA};
+use lnk_thrussh_keys::key::{ED25519, SSH_RSA};
 
 impl Named for PublicKey {
     fn name(&self) -> &'static str {

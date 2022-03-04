@@ -15,16 +15,16 @@
 pub use crate::signature::*;
 use crate::Error;
 use byteorder::{BigEndian, ByteOrder};
-use cryptovec::CryptoVec;
+use lnk_cryptovec::CryptoVec;
 #[cfg(feature = "openssl")]
 use openssl::pkey::{Private, Public};
-use thrussh_agent::key as agent_key;
-use thrussh_encoding::{Encoding, Position, Reader};
-use thrussh_libsodium as sodium;
+use lnk_thrussh_agent::key as agent_key;
+use lnk_thrussh_encoding::{Encoding, Position, Reader};
+use lnk_thrussh_libsodium as sodium;
 
 /// Keys for elliptic curve Ed25519 cryptography.
 pub mod ed25519 {
-    pub use thrussh_libsodium::ed25519::{
+    pub use lnk_thrussh_libsodium::ed25519::{
         keypair, sign_detached, verify_detached, PublicKey, SecretKey,
     };
 }
@@ -102,7 +102,7 @@ impl SignatureHash {
 #[derive(Eq, PartialEq, Debug)]
 pub enum PublicKey {
     #[doc(hidden)]
-    Ed25519(thrussh_libsodium::ed25519::PublicKey),
+    Ed25519(lnk_thrussh_libsodium::ed25519::PublicKey),
     #[doc(hidden)]
     #[cfg(feature = "openssl")]
     RSA {
@@ -280,7 +280,7 @@ impl std::fmt::Debug for KeyPair {
     }
 }
 
-impl<'b> thrussh_encoding::Bytes for &'b KeyPair {
+impl<'b> lnk_thrussh_encoding::Bytes for &'b KeyPair {
     fn bytes(&self) -> &[u8] {
         self.name().as_bytes()
     }
@@ -435,7 +435,7 @@ pub fn parse_public_key(p: &[u8]) -> Result<PublicKey, Error> {
     let t = pos.read_string()?;
     if t == b"ssh-ed25519" {
         if let Ok(pubkey) = pos.read_string() {
-            use thrussh_libsodium::ed25519;
+            use lnk_thrussh_libsodium::ed25519;
             let mut p = ed25519::PublicKey {
                 key: [0; ed25519::PUBLICKEY_BYTES],
             };

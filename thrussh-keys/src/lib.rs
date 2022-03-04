@@ -11,12 +11,13 @@
 //! agent to sign a piece of data (`b"Please sign this", below).
 //!
 //!```
-//! use thrussh_keys::*;
+//! use lnk_thrussh_keys::*;
+//! use lnk_thrussh_agent::{self as agent, server::{self, ServerStream}};
 //! use futures::Future;
 //!
 //! #[derive(Clone)]
 //! struct X{}
-//! impl agent::server::Agent for X {
+//! impl agent::server::Agent<key::KeyPair> for X {
 //!     fn confirm(self, _: std::sync::Arc<key::KeyPair>) -> Box<dyn Future<Output = (Self, bool)> + Send + Unpin> {
 //!         Box::new(futures::future::ready((self, true)))
 //!     }
@@ -35,7 +36,9 @@
 //!    core.spawn(async move {
 //!        let mut listener = tokio::net::UnixListener::bind(&agent_path_)
 //!            .unwrap();
-//!        thrussh_keys::agent::server::serve(tokio_stream::wrappers::UnixListenerStream::new(listener), X {}).await
+//!        ServerStream::serve(tokio_stream::wrappers::UnixListenerStream::new(listener), X{})
+//!            .await
+//!            .unwrap()
 //!    });
 //!    let key = decode_secret_key(PKCS8_ENCRYPTED, Some("blabla")).unwrap();
 //!    let public = key.clone_public_key();
@@ -43,9 +46,9 @@
 //!        let stream = tokio::net::UnixStream::connect(&agent_path).await?;
 //!        let mut client = agent::client::AgentClient::connect(stream);
 //!        client.add_identity(&key, &[agent::Constraint::KeyLifetime { seconds: 60 }]).await?;
-//!        client.request_identities().await?;
+//!        client.request_identities::<key::PublicKey>().await?;
 //!        let buf = b"signed message";
-//!        let sig = client.sign_request(&public, cryptovec::CryptoVec::from_slice(&buf[..])).await.1.unwrap();
+//!        let sig = client.sign_request(&public, lnk_cryptovec::CryptoVec::from_slice(&buf[..])).await.1.unwrap();
 //!        // Here, `sig` is encoded in a format usable internally by the SSH protocol.
 //!        Ok::<(), Error>(())
 //!    }).unwrap()
@@ -79,7 +82,7 @@ pub use format::*;
 #[derive(Debug, Error)]
 pub enum Error {
     #[error(transparent)]
-    Client(#[from] thrussh_agent::client::Error),
+    Client(#[from] lnk_thrussh_agent::client::Error),
     /// The key could not be read, for an unknown reason
     #[error("Could not read key")]
     CouldNotReadKey,
@@ -99,7 +102,7 @@ pub enum Error {
     #[error("Unknown key algorithm")]
     UnknownAlgorithm(yasna::models::ObjectIdentifier),
     #[error(transparent)]
-    Encoding(#[from] thrussh_encoding::Error),
+    Encoding(#[from] lnk_thrussh_encoding::Error),
     /// Unknown signature type
     #[error("Unknown signature type: {}", sig_type)]
     UnknownSignatureType { sig_type: String },
@@ -131,8 +134,8 @@ const KEYTYPE_RSA: &'static [u8] = b"ssh-rsa";
 
 /// Load a public key from a file. Ed25519 and RSA keys are supported.
 ///
-/// ```
-/// thrussh_keys::load_public_key("/home/pe/.ssh/id_ed25519.pub").unwrap();
+/// ```no_run
+/// lnk_thrussh_keys::load_public_key("/home/pe/.ssh/id_ed25519.pub").unwrap();
 /// ```
 pub fn load_public_key<P: AsRef<Path>>(path: P) -> Result<key::PublicKey, Error> {
     let mut pubkey = String::new();
@@ -152,7 +155,7 @@ pub fn load_public_key<P: AsRef<Path>>(path: P) -> Result<key::PublicKey, Error>
 /// as `ssh-ed25519 AAAAC3N...`).
 ///
 /// ```
-/// thrussh_keys::parse_public_key_base64("AAAAC3NzaC1lZDI1NTE5AAAAIJdD7y3aLq454yWBdwLWbieU1ebz9/cu7/QEXn9OIeZJ").is_ok();
+/// lnk_thrussh_keys::parse_public_key_base64("AAAAC3NzaC1lZDI1NTE5AAAAIJdD7y3aLq454yWBdwLWbieU1ebz9/cu7/QEXn9OIeZJ").is_ok();
 /// ```
 pub fn parse_public_key_base64(key: &str) -> Result<key::PublicKey, Error> {
     let base = BASE64_MIME.decode(key.as_bytes())?;
@@ -184,7 +187,7 @@ impl PublicKeyBase64 for key::PublicKey {
             }
             #[cfg(feature = "openssl")]
             key::PublicKey::RSA { ref key, .. } => {
-                use thrussh_encoding::Encoding;
+                use lnk_thrussh_encoding::Encoding;
                 let name = b"ssh-rsa";
                 s.write_u32::<BigEndian>(name.len() as u32).unwrap();
                 s.extend_from_slice(name);
@@ -210,7 +213,7 @@ impl PublicKeyBase64 for key::KeyPair {
             }
             #[cfg(feature = "openssl")]
             key::KeyPair::RSA { ref key, .. } => {
-                use thrussh_encoding::Encoding;
+                use lnk_thrussh_encoding::Encoding;
                 s.extend_ssh_mpint(&key.e().to_vec());
                 s.extend_ssh_mpint(&key.n().to_vec());
             }
@@ -756,10 +759,10 @@ Cog3JMeTrb3LiPHgN6gU2P30MRp6L1j1J/MtlOAr5rux
         rt.block_on(async move {
             let public = key.clone_public_key();
             let stream = tokio::net::UnixStream::connect(&agent_path).await?;
-            let mut client = thrussh_agent::client::AgentClient::connect(stream);
+            let mut client = lnk_thrussh_agent::client::AgentClient::connect(stream);
             client.add_identity(&key, &[]).await?;
             client.request_identities::<key::PublicKey>().await?;
-            let buf = cryptovec::CryptoVec::from_slice(b"blabla");
+            let buf = lnk_cryptovec::CryptoVec::from_slice(b"blabla");
             let len = buf.len();
             let (_, buf) = client.sign_request(&public, buf).await;
             let buf = buf?;
@@ -806,7 +809,7 @@ Cog3JMeTrb3LiPHgN6gU2P30MRp6L1j1J/MtlOAr5rux
         let agent_path = dir.path().join("agent");
 
         let core = tokio::runtime::Runtime::new().unwrap();
-        use thrussh_agent as agent;
+        use lnk_thrussh_agent as agent;
 
         #[derive(Clone)]
         struct X {}
@@ -845,7 +848,7 @@ Cog3JMeTrb3LiPHgN6gU2P30MRp6L1j1J/MtlOAr5rux
                 )
                 .await?;
             client.request_identities::<key::PublicKey>().await?;
-            let buf = cryptovec::CryptoVec::from_slice(b"blabla");
+            let buf = lnk_cryptovec::CryptoVec::from_slice(b"blabla");
             let len = buf.len();
             let (_, buf) = client.sign_request(&public, buf).await;
             let buf = buf?;
@@ -866,7 +869,7 @@ Cog3JMeTrb3LiPHgN6gU2P30MRp6L1j1J/MtlOAr5rux
         listener: &'a mut tokio::net::UnixListener,
     }
     impl futures::stream::Stream for Incoming<'_> {
-        type Item = Result<tokio::net::UnixStream, thrussh_agent::server::Error>;
+        type Item = Result<tokio::net::UnixStream, std::io::Error>;
 
         fn poll_next(
             self: std::pin::Pin<&mut Self>,

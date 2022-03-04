@@ -3,7 +3,7 @@ use crate::{Error, KEYTYPE_ED25519, KEYTYPE_RSA};
 use bcrypt_pbkdf;
 #[cfg(feature = "openssl")]
 use openssl::bn::BigNum;
-use thrussh_encoding::Reader;
+use lnk_thrussh_encoding::Reader;
 
 /// Decode a secret key given in the OpenSSH format, deciphering it if
 /// needed using the supplied password.

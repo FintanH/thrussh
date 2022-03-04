@@ -209,7 +209,7 @@ impl CryptoVec {
     /// Length of this `CryptoVec`.
     ///
     /// ```
-    /// assert_eq!(cryptovec::CryptoVec::new().len(), 0)
+    /// assert_eq!(lnk_cryptovec::CryptoVec::new().len(), 0)
     /// ```
     pub fn len(&self) -> usize {
         self.size
@@ -218,7 +218,7 @@ impl CryptoVec {
     /// Returns `true` if and only if this CryptoVec is empty.
     ///
     /// ```
-    /// assert!(cryptovec::CryptoVec::new().is_empty())
+    /// assert!(lnk_cryptovec::CryptoVec::new().is_empty())
     /// ```
     pub fn is_empty(&self) -> bool {
         self.len() == 0
@@ -273,7 +273,7 @@ impl CryptoVec {
     /// Clear this CryptoVec (retaining the memory).
     ///
     /// ```
-    /// let mut v = cryptovec::CryptoVec::new();
+    /// let mut v = lnk_cryptovec::CryptoVec::new();
     /// v.extend(b"blabla");
     /// v.clear();
     /// assert!(v.is_empty())
@@ -292,7 +292,7 @@ impl CryptoVec {
     /// Append a new u32, big endian-encoded, at the end of this CryptoVec.
     ///
     /// ```
-    /// let mut v = cryptovec::CryptoVec::new();
+    /// let mut v = lnk_cryptovec::CryptoVec::new();
     /// let n = 43554;
     /// v.push_u32_be(n);
     /// assert_eq!(n, v.read_u32_be(0))
@@ -307,7 +307,7 @@ impl CryptoVec {
     /// first byte at position `i`.
     ///
     /// ```
-    /// let mut v = cryptovec::CryptoVec::new();
+    /// let mut v = lnk_cryptovec::CryptoVec::new();
     /// let n = 99485710;
     /// v.push_u32_be(n);
     /// assert_eq!(n, v.read_u32_be(0))
@@ -353,7 +353,7 @@ impl CryptoVec {
     /// number of bytes actually written.
     ///
     /// ```
-    /// let mut v = cryptovec::CryptoVec::new();
+    /// let mut v = lnk_cryptovec::CryptoVec::new();
     /// v.extend(b"blabla");
     /// let mut s = std::io::stdout();
     /// v.write_all_from(0, &mut s).unwrap();
@@ -374,7 +374,7 @@ impl CryptoVec {
     /// Resize this CryptoVec, returning a mutable borrow to the extra bytes.
     ///
     /// ```
-    /// let mut v = cryptovec::CryptoVec::new();
+    /// let mut v = lnk_cryptovec::CryptoVec::new();
     /// v.resize_mut(4).clone_from_slice(b"test");
     /// ```
     pub fn resize_mut(&mut self, n: usize) -> &mut [u8] {
@@ -386,7 +386,7 @@ impl CryptoVec {
     /// Append a slice at the end of this CryptoVec.
     ///
     /// ```
-    /// let mut v = cryptovec::CryptoVec::new();
+    /// let mut v = lnk_cryptovec::CryptoVec::new();
     /// v.extend(b"test");
     /// ```
     pub fn extend(&mut self, s: &[u8]) {
@@ -400,7 +400,7 @@ impl CryptoVec {
     /// Create a `CryptoVec` from a slice
     ///
     /// ```
-    /// use cryptovec::CryptoVec;
+    /// use lnk_cryptovec::CryptoVec;
     ///
     /// CryptoVec::from_slice(b"test");
     /// ```

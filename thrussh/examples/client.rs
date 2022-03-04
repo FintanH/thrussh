@@ -1,18 +1,18 @@
 extern crate env_logger;
 extern crate futures;
-extern crate thrussh;
-extern crate thrussh_keys;
+extern crate lnk_thrussh;
+extern crate lnk_thrussh_keys;
 extern crate tokio;
 use anyhow::Context;
 use std::sync::Arc;
-use thrussh::*;
-use thrussh_agent::client::ClientStream;
-use thrussh_keys::*;
+use lnk_thrussh::*;
+use lnk_thrussh_agent::client::ClientStream;
+use lnk_thrussh_keys::*;
 
 struct Client {}
 
 impl client::Handler for Client {
-    type Error = thrussh::Error;
+    type Error = lnk_thrussh::Error;
     type FutureUnit = futures::future::Ready<Result<(Self, client::Session), Self::Error>>;
     type FutureBool = futures::future::Ready<Result<(Self, bool), Self::Error>>;
 
@@ -31,13 +31,13 @@ impl client::Handler for Client {
 #[tokio::main]
 async fn main() {
     env_logger::init();
-    let config = thrussh::client::Config::default();
+    let config = lnk_thrussh::client::Config::default();
     let config = Arc::new(config);
     let sh = Client {};
 
     let mut agent = tokio::net::UnixStream::connect_env().await.unwrap();
     let mut identities = agent.request_identities().await.unwrap();
-    let mut session = thrussh::client::connect(config, "127.0.0.1:2200", sh)
+    let mut session = lnk_thrussh::client::connect(config, "127.0.0.1:2200", sh)
         .await
         .unwrap();
     let (_, auth_res) = session
@@ -57,10 +57,10 @@ async fn main() {
     while let Some(msg) = channel.wait().await {
         use std::io::Write;
         match msg {
-            thrussh::ChannelMsg::Data { ref data } => {
+            lnk_thrussh::ChannelMsg::Data { ref data } => {
                 f.write_all(&data).unwrap();
             }
-            thrussh::ChannelMsg::Eof => {
+            lnk_thrussh::ChannelMsg::Eof => {
                 f.flush().unwrap();
                 break;
             }

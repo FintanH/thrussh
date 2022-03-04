@@ -18,7 +18,7 @@ use std::net::ToSocketAddrs;
 use std::sync::Arc;
 
 use futures::future::Future;
-use thrussh_keys::key;
+use lnk_thrussh_keys::key;
 use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio::pin;
@@ -87,7 +87,7 @@ impl Default for Config {
 /// A client's response in a challenge-response authentication.
 #[derive(Debug)]
 pub struct Response<'a> {
-    pos: thrussh_encoding::Position<'a>,
+    pos: lnk_thrussh_encoding::Position<'a>,
     n: u32,
 }
 

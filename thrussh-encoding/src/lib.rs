@@ -14,7 +14,7 @@
 //
 
 use byteorder::{BigEndian, ByteOrder, WriteBytesExt};
-use cryptovec::CryptoVec;
+use lnk_cryptovec::CryptoVec;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

@@ -16,11 +16,11 @@ use crate::{cipher, key, msg};
 use byteorder::{BigEndian, ByteOrder};
 
 use crate::session::Exchange;
-use cryptovec::CryptoVec;
+use lnk_cryptovec::CryptoVec;
 use rand::RngCore;
 use sodium;
 use std::cell::RefCell;
-use thrussh_encoding::Encoding;
+use lnk_thrussh_encoding::Encoding;
 
 #[doc(hidden)]
 pub struct Algorithm {

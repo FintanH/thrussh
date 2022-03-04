@@ -20,16 +20,16 @@ use crate::session::*;
 use crate::ssh_read::SshRead;
 use crate::sshbuffer::*;
 use crate::{ChannelId, ChannelMsg, ChannelOpenFailure, Disconnect, Limits, Sig};
-use cryptovec::CryptoVec;
+use lnk_cryptovec::CryptoVec;
 use futures::task::{Context, Poll};
 use futures::Future;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::pin::Pin;
 use std::sync::Arc;
-use thrussh_encoding::{Encoding, Reader};
-use thrussh_keys::key;
-use thrussh_keys::key::parse_public_key;
+use lnk_thrussh_encoding::{Encoding, Reader};
+use lnk_thrussh_keys::key;
+use lnk_thrussh_keys::key::parse_public_key;
 use tokio;
 use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpStream;
@@ -65,7 +65,7 @@ enum Reply {
     AuthFailure,
     ChannelOpenFailure,
     SignRequest {
-        key: thrussh_keys::key::PublicKey,
+        key: lnk_thrussh_keys::key::PublicKey,
         data: CryptoVec,
     },
 }
@@ -1088,7 +1088,7 @@ impl KexDhDone {
                     debug!("sig_type: {:?}", sig_type);
                     sig_reader.read_string().map_err(crate::Error::from)?
                 };
-                use thrussh_keys::key::Verify;
+                use lnk_thrussh_keys::key::Verify;
                 debug!("signature: {:?}", signature);
                 if !pubkey.verify_server_auth(hash.as_ref(), signature) {
                     debug!("wrong server sig");

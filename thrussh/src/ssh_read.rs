@@ -1,5 +1,5 @@
 use crate::Error;
-use cryptovec::CryptoVec;
+use lnk_cryptovec::CryptoVec;
 use futures::task::*;
 use std;
 use std::pin::Pin;

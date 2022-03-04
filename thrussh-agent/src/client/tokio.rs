@@ -2,7 +2,7 @@ use std::path::Path;
 
 use async_trait::async_trait;
 use byteorder::{BigEndian, ByteOrder};
-use cryptovec::CryptoVec;
+use lnk_cryptovec::CryptoVec;
 use tokio;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 

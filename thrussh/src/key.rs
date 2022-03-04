@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-use cryptovec::CryptoVec;
-use thrussh_encoding::*;
-use thrussh_keys::key::*;
+use lnk_cryptovec::CryptoVec;
+use lnk_thrussh_encoding::*;
+use lnk_thrussh_keys::key::*;
 
 #[doc(hidden)]
 pub trait PubKey {

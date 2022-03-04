@@ -21,9 +21,9 @@ use crate::negotiation::Named;
 use crate::negotiation::Select;
 use crate::session::*;
 use crate::{ChannelId, ChannelOpenFailure, Error, Sig};
-use cryptovec::CryptoVec;
+use lnk_cryptovec::CryptoVec;
 use std::cell::RefCell;
-use thrussh_encoding::{Encoding, Reader};
+use lnk_thrussh_encoding::{Encoding, Reader};
 
 thread_local! {
     static SIGNATURE_BUFFER: RefCell<CryptoVec> = RefCell::new(CryptoVec::new());

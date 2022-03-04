@@ -13,10 +13,10 @@
 // limitations under the License.
 //
 
-use cryptovec::CryptoVec;
+use lnk_cryptovec::CryptoVec;
 use std::sync::Arc;
-use thrussh_encoding as encoding;
-use thrussh_keys::key;
+use lnk_thrussh_encoding as encoding;
+use lnk_thrussh_keys::key;
 use tokio::io::{AsyncRead, AsyncWrite};
 
 bitflags! {
@@ -73,11 +73,11 @@ pub enum AgentAuthError {
     Send(#[from] crate::SendError),
 
     #[error(transparent)]
-    Client(#[from] thrussh_agent::client::Error),
+    Client(#[from] lnk_thrussh_agent::client::Error),
 }
 
-impl<R: thrussh_agent::client::ClientStream + AsyncRead + AsyncWrite + Unpin + Send + 'static>
-    Signer for thrussh_agent::client::AgentClient<R>
+impl<R: lnk_thrussh_agent::client::ClientStream + AsyncRead + AsyncWrite + Unpin + Send + 'static>
+    Signer for lnk_thrussh_agent::client::AgentClient<R>
 {
     type Error = AgentAuthError;
     type Future = std::pin::Pin<

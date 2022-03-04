@@ -31,25 +31,25 @@
 //! to all other clients:
 //!
 //! ```
-//! extern crate thrussh;
-//! extern crate thrussh_keys;
+//! extern crate lnk_thrussh;
+//! extern crate lnk_thrussh_keys;
 //! extern crate futures;
 //! extern crate tokio;
 //! use std::sync::{Mutex, Arc};
-//! use thrussh::*;
-//! use thrussh::server::{Auth, Session};
-//! use thrussh_keys::*;
+//! use lnk_thrussh::*;
+//! use lnk_thrussh::server::{Auth, Session};
+//! use lnk_thrussh_keys::*;
 //! use std::collections::HashMap;
 //! use futures::Future;
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!     let client_key = thrussh_keys::key::KeyPair::generate_ed25519().unwrap();
+//!     let client_key = lnk_thrussh_keys::key::KeyPair::generate_ed25519().unwrap();
 //!     let client_pubkey = Arc::new(client_key.clone_public_key());
-//!     let mut config = thrussh::server::Config::default();
+//!     let mut config = lnk_thrussh::server::Config::default();
 //!     config.connection_timeout = Some(std::time::Duration::from_secs(3));
 //!     config.auth_rejection_time = std::time::Duration::from_secs(3);
-//!     config.keys.push(thrussh_keys::key::KeyPair::generate_ed25519().unwrap());
+//!     config.keys.push(lnk_thrussh_keys::key::KeyPair::generate_ed25519().unwrap());
 //!     let config = Arc::new(config);
 //!     let sh = Server{
 //!         client_pubkey,
@@ -58,14 +58,14 @@
 //!     };
 //!     tokio::time::timeout(
 //!        std::time::Duration::from_secs(1),
-//!        thrussh::server::run(config, "0.0.0.0:2222", sh)
+//!        lnk_thrussh::server::run(config, "0.0.0.0:2222", sh)
 //!     ).await.unwrap_or(Ok(()));
 //! }
 //!
 //! #[derive(Clone)]
 //! struct Server {
-//!     client_pubkey: Arc<thrussh_keys::key::PublicKey>,
-//!     clients: Arc<Mutex<HashMap<(usize, ChannelId), thrussh::server::Handle>>>,
+//!     client_pubkey: Arc<lnk_thrussh_keys::key::PublicKey>,
+//!     clients: Arc<Mutex<HashMap<(usize, ChannelId), lnk_thrussh::server::Handle>>>,
 //!     id: usize,
 //! }
 //!
@@ -149,16 +149,16 @@
 //! `Session` is passed to the `Handler` when the client receives
 //! data.
 //!
-//! ```
-//!extern crate thrussh;
-//!extern crate thrussh_keys;
+//! ```no_run
+//!extern crate lnk_thrussh;
+//!extern crate lnk_thrussh_keys;
 //!extern crate futures;
 //!extern crate tokio;
 //!extern crate env_logger;
 //!use std::sync::Arc;
-//!use thrussh::*;
-//!use thrussh::server::{Auth, Session};
-//!use thrussh_keys::*;
+//!use lnk_thrussh::*;
+//!use lnk_thrussh::server::{Auth, Session};
+//!use lnk_thrussh_keys::*;
 //!use futures::Future;
 //!use std::io::Read;
 //!
@@ -193,16 +193,16 @@
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!   use thrussh_agent::client::ClientStream as _;
+//!   use lnk_thrussh_agent::client::ClientStream as _;
 //!
-//!   let config = thrussh::client::Config::default();
+//!   let config = lnk_thrussh::client::Config::default();
 //!   let config = Arc::new(config);
 //!   let sh = Client{};
 //!
-//!   let key = thrussh_keys::key::KeyPair::generate_ed25519().unwrap();
-//!   let mut agent = thrussh_agent::client::tokio::UnixStream::connect_env().await.unwrap();
+//!   let key = lnk_thrussh_keys::key::KeyPair::generate_ed25519().unwrap();
+//!   let mut agent = lnk_thrussh_agent::client::tokio::UnixStream::connect_env().await.unwrap();
 //!   agent.add_identity(&key, &[]).await.unwrap();
-//!   let mut session = thrussh::client::connect(config, "localhost:22", sh).await.unwrap();
+//!   let mut session = lnk_thrussh::client::connect(config, "localhost:22", sh).await.unwrap();
 //!   if session.authenticate_future(std::env::var("USER").unwrap(), key.clone_public_key(), agent).await.1.unwrap() {
 //!     let mut channel = session.channel_open_session().await.unwrap();
 //!     channel.data(&b"Hello, world!"[..]).await.unwrap();
@@ -275,11 +275,11 @@
 extern crate bitflags;
 #[macro_use]
 extern crate log;
-extern crate thrussh_libsodium as sodium;
+extern crate lnk_thrussh_libsodium as sodium;
 #[macro_use]
 extern crate thiserror;
 
-pub use cryptovec::CryptoVec;
+pub use lnk_cryptovec::CryptoVec;
 mod auth;
 mod cipher;
 mod compression;
@@ -413,10 +413,10 @@ pub enum Error {
     Pending,
 
     #[error(transparent)]
-    Keys(#[from] thrussh_keys::Error),
+    Keys(#[from] lnk_thrussh_keys::Error),
 
     #[error(transparent)]
-    Encoding(#[from] thrussh_encoding::Error),
+    Encoding(#[from] lnk_thrussh_encoding::Error),
 
     #[error(transparent)]
     IO(#[from] std::io::Error),
@@ -664,7 +664,7 @@ mod test_compress {
     async fn compress_local_test() {
         let _ = env_logger::try_init();
 
-        let client_key = thrussh_keys::key::KeyPair::generate_ed25519().unwrap();
+        let client_key = lnk_thrussh_keys::key::KeyPair::generate_ed25519().unwrap();
         let client_pubkey = Arc::new(client_key.clone_public_key());
         let mut config = server::Config::default();
         config.preferred = Preferred::COMPRESSED;
@@ -672,7 +672,7 @@ mod test_compress {
         config.auth_rejection_time = std::time::Duration::from_secs(3);
         config
             .keys
-            .push(thrussh_keys::key::KeyPair::generate_ed25519().unwrap());
+            .push(lnk_thrussh_keys::key::KeyPair::generate_ed25519().unwrap());
         let config = Arc::new(config);
         let mut sh = Server {
             client_pubkey,
@@ -715,7 +715,7 @@ mod test_compress {
 
     #[derive(Clone)]
     struct Server {
-        client_pubkey: Arc<thrussh_keys::key::PublicKey>,
+        client_pubkey: Arc<lnk_thrussh_keys::key::PublicKey>,
         clients: Arc<Mutex<HashMap<(usize, ChannelId), super::server::Handle>>>,
         id: usize,
     }
@@ -751,7 +751,7 @@ mod test_compress {
             }
             self.finished(session)
         }
-        fn auth_publickey(self, _: &str, _: &thrussh_keys::key::PublicKey) -> Self::FutureAuth {
+        fn auth_publickey(self, _: &str, _: &lnk_thrussh_keys::key::PublicKey) -> Self::FutureAuth {
             debug!("auth_publickey");
             self.finished_auth(server::Auth::Accept)
         }
@@ -777,7 +777,7 @@ mod test_compress {
         }
         fn check_server_key(
             self,
-            server_public_key: &thrussh_keys::key::PublicKey,
+            server_public_key: &lnk_thrussh_keys::key::PublicKey,
         ) -> Self::FutureBool {
             println!("check_server_key: {:?}", server_public_key);
             self.finished_bool(true)
